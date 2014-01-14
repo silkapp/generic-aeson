@@ -16,104 +16,104 @@ import qualified Data.Aeson.Types as A
 import Data.ByteString.Lazy (ByteString)
 
 data A = A deriving (Generic, Show, Eq)
-instance ToJSON   A where toJSON    = gtoJSON
-instance FromJSON A where parseJSON = gparseJSON
+instance ToJSON   A where toJSON    = gtoJson
+instance FromJSON A where parseJSON = gparseJson
 testA :: (Value, Either String A)
 testA = (toJSON A, i A)
 
 data B = B { b :: Int } deriving (Generic, Show, Eq)
-instance ToJSON   B where toJSON    = gtoJSON
-instance FromJSON B where parseJSON = gparseJSON
+instance ToJSON   B where toJSON    = gtoJson
+instance FromJSON B where parseJSON = gparseJson
 testB :: (Value, Either String B)
 testB = (toJSON B { b = 1 }, i B { b = 1 })
 
 data D = D { d1 :: Int, d2 :: String } deriving (Generic, Show, Eq)
-instance ToJSON   D where toJSON = gtoJSON
-instance FromJSON D where parseJSON = gparseJSON
+instance ToJSON   D where toJSON = gtoJson
+instance FromJSON D where parseJSON = gparseJson
 testD :: (Value, Either String D)
 testD = (toJSON D { d1 = 1, d2 = "aap" }, i D { d1 = 1, d2 = "aap" })
 
 data E = E Int deriving (Generic, Show, Eq)
-instance ToJSON   E where toJSON = gtoJSON
-instance FromJSON E where parseJSON = gparseJSON
+instance ToJSON   E where toJSON = gtoJson
+instance FromJSON E where parseJSON = gparseJson
 testE :: (Value, Either String E)
 testE = (toJSON (E 1), i (E 1))
 
 data F = F Int String deriving (Generic, Show, Eq)
-instance ToJSON   F where toJSON = gtoJSON
-instance FromJSON F where parseJSON = gparseJSON
+instance ToJSON   F where toJSON = gtoJson
+instance FromJSON F where parseJSON = gparseJson
 testF :: (Value, Either String F)
 testF = (toJSON (F 1 "aap"), i (F 1 "aap"))
 
 data G = G1 Int | G2 String deriving (Generic, Show, Eq)
-instance ToJSON   G where toJSON = gtoJSON
-instance FromJSON G where parseJSON = gparseJSON
+instance ToJSON   G where toJSON = gtoJson
+instance FromJSON G where parseJSON = gparseJson
 testG :: (Value, Value, Either String G, Either String G)
 testG = (toJSON (G1 1), toJSON (G2 "aap"), i (G1 1), i (G2 "aap"))
 
 data H = H1 { h1 :: Int } | H2 { h2 :: String } deriving (Generic, Show, Eq)
-instance ToJSON   H where toJSON = gtoJSON
-instance FromJSON H where parseJSON = gparseJSON
+instance ToJSON   H where toJSON = gtoJson
+instance FromJSON H where parseJSON = gparseJson
 testH :: (Value, Value, Either String H, Either String H)
 testH = (toJSON (H1 1), toJSON (H2 "aap"), i (H1 1), i (H2 "aap"))
 
 data J = J1 { j1 :: Int, j2 :: String } | J2 deriving (Generic, Show, Eq)
-instance ToJSON   J where toJSON = gtoJSON
-instance FromJSON J where parseJSON = gparseJSON
+instance ToJSON   J where toJSON = gtoJson
+instance FromJSON J where parseJSON = gparseJson
 testJ :: (Value, Value, Either String J, Either String J)
 testJ = (toJSON (J1 1 "aap"), toJSON J2, i (J1 1 "aap"), i J2)
 
 data L = L1 | L2 Int String deriving (Generic, Show, Eq)
-instance ToJSON   L where toJSON = gtoJSON
-instance FromJSON L where parseJSON = gparseJSON
+instance ToJSON   L where toJSON = gtoJson
+instance FromJSON L where parseJSON = gparseJson
 testL :: (Value, Value, Either String L, Either String L)
 testL = (toJSON L1, toJSON (L2 1 "aap"), i L1, i (L2 1 "aap"))
 
 data M = M1 | M2 Int M deriving (Generic, Show, Eq)
-instance ToJSON   M where toJSON = gtoJSON
-instance FromJSON M where parseJSON = gparseJSON
+instance ToJSON   M where toJSON = gtoJson
+instance FromJSON M where parseJSON = gparseJson
 testM :: (Value, Value, Value, Either String M, Either String M, Either String M)
 testM = (toJSON M1, toJSON (M2 1 M1), toJSON (M2 1 (M2 2 M1)), i M1, i (M2 1 M1), i (M2 1 (M2 2 M1)))
 
 data N = N1 | N2 { n1 :: Int, n2 :: N } deriving (Generic, Show, Eq)
-instance ToJSON   N where toJSON = gtoJSON
-instance FromJSON N where parseJSON = gparseJSON
+instance ToJSON   N where toJSON = gtoJson
+instance FromJSON N where parseJSON = gparseJson
 testN :: (Value, Value, Value, Either String N, Either String N, Either String N)
 testN = (toJSON N1, toJSON (N2 1 N1), toJSON (N2 1 (N2 2 N1)), i N1, i (N2 1 N1), i (N2 1 (N2 2 N1)))
 
 data O = O { o :: [Int] } deriving (Generic, Show, Eq)
-instance ToJSON   O where toJSON = gtoJSON
-instance FromJSON O where parseJSON = gparseJSON
+instance ToJSON   O where toJSON = gtoJson
+instance FromJSON O where parseJSON = gparseJson
 testO :: (Value, Either String O)
 testO = (toJSON (O [1,2,3]), i (O [1,2,3]))
 
 data P = P [Int] deriving (Generic, Show, Eq)
-instance ToJSON   P where toJSON = gtoJSON
-instance FromJSON P where parseJSON = gparseJSON
+instance ToJSON   P where toJSON = gtoJson
+instance FromJSON P where parseJSON = gparseJson
 testP :: (Value, Either String P)
 testP = (toJSON (P [1,2,3]), i (P [1,2,3]))
 
 data Q = Q Int Int Int deriving (Generic, Show, Eq)
-instance ToJSON   Q where toJSON = gtoJSON
-instance FromJSON Q where parseJSON = gparseJSON
+instance ToJSON   Q where toJSON = gtoJson
+instance FromJSON Q where parseJSON = gparseJson
 testQ :: (Value, Either String Q)
 testQ = (toJSON (Q 1 2 3), i (Q 1 2 3))
 
 data T = T { r1 :: Maybe Int } deriving (Generic, Show, Eq)
-instance ToJSON   T where toJSON = gtoJSON
-instance FromJSON T where parseJSON = gparseJSON
+instance ToJSON   T where toJSON = gtoJson
+instance FromJSON T where parseJSON = gparseJson
 testT :: (Value, Value, Either String T, Either String T)
 testT = (toJSON (T Nothing), toJSON (T (Just 1)), i (T Nothing), i (T (Just 1)))
 
 data V = V1 | V2 | V3 deriving (Generic, Show, Eq)
-instance ToJSON   V where toJSON = gtoJSON
-instance FromJSON V where parseJSON = gparseJSON
+instance ToJSON   V where toJSON = gtoJson
+instance FromJSON V where parseJSON = gparseJson
 testV :: (Value, Value, Either String V, Either String V)
 testV = (toJSON V1, toJSON V2, i V1, i V2)
 
 data W = W { underscore1_ :: Int, _underscore2 :: Int } deriving (Generic, Show, Eq)
-instance ToJSON   W where toJSON = gtoJSON
-instance FromJSON W where parseJSON = gparseJSON
+instance ToJSON   W where toJSON = gtoJson
+instance FromJSON W where parseJSON = gparseJson
 testW :: (Value, Either String W)
 testW = (toJSON (W 1 2), i (W 1 2))
 
