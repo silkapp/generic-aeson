@@ -20,6 +20,6 @@ library
     , generic-deriving == 1.6.*
     , mtl >= 2.0 && < 2.2
     , tagged >= 0.2 && < 0.8
-    , text == 1.*
+    , text >= 0.11 && < 1.2
     , vector == 0.10.*
     , attoparsec
