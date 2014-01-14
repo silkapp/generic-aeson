@@ -5,6 +5,7 @@
   , FlexibleInstances
   , MultiParamTypeClasses
   , OverlappingInstances
+  , OverloadedStrings
   , ScopedTypeVariables
   , TupleSections
   , TypeOperators
@@ -16,14 +17,14 @@
 module Generics.Generic.Aeson (GJSON (..), gtoJSON, gparseJSON) where
 
 import Control.Applicative
-import Control.Arrow
 import Control.Monad.Error
 import Control.Monad.State
 import Data.Aeson
 import Data.Aeson.Types
 import Data.Char
+import Data.Maybe
 import Data.Proxy
-import Data.Text (pack)
+import Data.Text (Text, cons, pack, stripPrefix, stripSuffix, uncons, unpack)
 import GHC.Generics
 import Generics.Deriving.ConNames
 import qualified Data.Vector as V
@@ -37,7 +38,7 @@ class GJSON f where
   -- constructors). A functor is then converted to either a list
   -- of values (for non-labeled fields) or a list of String/value
   -- pairs (for labeled fields).
-  gtoJSONf :: Bool -> Bool -> f a -> Either [Value] [(String, Value)]
+  gtoJSONf :: Bool -> Bool -> f a -> Either [Value] [(Text, Value)]
   -- | Generically read a functor from a JSON value.  The first
   -- argument tells us if there are multiple constructors in the data
   -- type. The second indicates if we've already detected that this
@@ -100,7 +101,7 @@ instance (GJSON f, GJSON g) => GJSON (f :*: g) where
 
 instance (Selector c, ToJSON a, FromJSON a) => GJSON (M1 S c (K1 i (Maybe a))) where
   gtoJSONf _  _ (M1 (K1 Nothing )) = Right []
-  gtoJSONf _  _ (M1 (K1 (Just x))) = Right [(formatLabel $ selName (undefined :: M1 S c f p), toJSON x)]
+  gtoJSONf _  _ (M1 (K1 (Just x))) = Right [(formatLabel . pack $ selName (undefined :: M1 S c f p), toJSON x)]
   gparseJSONf mc smf enm =
     -- We know the undefined here is never used. We could give it in
     -- terms of 'f' and 'fromJust', but that requires a type signature
@@ -116,7 +117,7 @@ instance GJSON f => GJSON (M1 D c f) where
   gparseJSONf a b x = M1 <$> gparseJSONf a b x
 
 instance (Constructor c, GJSON f) => GJSON (M1 C c f) where
-  gtoJSONf _  True  (M1 _) = Left [toJSON . formatLabel $ conName (undefined :: M1 C c f p)]
+  gtoJSONf _  True  (M1 _) = Left [toJSON . formatLabel . pack $ conName (undefined :: M1 C c f p)]
   gtoJSONf mc False (M1 x) =
     case gtoJSONf mc False x of
       -- Single field constructors are not wrapped in an array.
@@ -127,25 +128,25 @@ instance (Constructor c, GJSON f) => GJSON (M1 C c f) where
       wrap = if mc
              then toObject
                 . return
-                . (formatLabel $ conName (undefined :: M1 C c f p), )
+                . (formatLabel . pack $ conName (undefined :: M1 C c f p), )
              else id
   gparseJSONf mc smf True =
     do str    <- pop
        conStr <- lift (parseJSON str)
-       let expectedConStr = formatLabel (conName (undefined :: M1 C c f p))
+       let expectedConStr = formatLabel . pack $ conName (undefined :: M1 C c f p)
        unless (conStr == expectedConStr) $
-         fail $ "Error parsing enumeration: expected " ++ expectedConStr ++ ", found " ++ conStr ++ "."
+         fail $ "Error parsing enumeration: expected " ++ unpack expectedConStr ++ ", found " ++ unpack conStr ++ "."
        M1 <$> gparseJSONf mc smf True
   gparseJSONf mc smf False =
     do when mc (selProp "C" propName)
        M1 <$> gparseJSONf mc smf False
     where
-      propName = formatLabel (conName (undefined :: M1 C c f p))
+      propName = formatLabel . pack $ conName (undefined :: M1 C c f p)
 
 instance (Selector c, GJSON f) => GJSON (M1 S c f) where
   gtoJSONf mc enm (M1 x) =
     case gtoJSONf mc enm x of
-      Left  [v] -> case formatLabel $ selName (undefined :: M1 S c f p) of
+      Left  [v] -> case formatLabel . pack $ selName (undefined :: M1 S c f p) of
         "" -> Left [v]
         n  -> Right [(n, v)]
       Left  _   -> error "The impossible happened: multiple returned values inside label in GJSON instance for S."
@@ -154,19 +155,19 @@ instance (Selector c, GJSON f) => GJSON (M1 S c f) where
     do selProp "S" propName
        M1 <$> gparseJSONf mc smf enm
     where
-      propName = formatLabel $ selName (undefined :: M1 S c f p)
+      propName = formatLabel . pack $ selName (undefined :: M1 S c f p)
 
 multipleConstructors :: (Generic a, ConNames (Rep a)) => a -> Bool
 multipleConstructors = (> 1) . length . conNames
 
-selProp :: String -> String -> StateT [Value] Parser ()
+selProp :: Text -> Text -> StateT [Value] Parser ()
 selProp cname propName =
   case propName of
     "" -> do o <- pop
              modify (o:)
     _  -> do o <- pop
              v <- lift (withObject ("Expected property " ++ show propName ++ " in object in gparseJSONf for " ++ show cname ++ ".")
-                                   (.: pack propName) o)
+                                   (.: propName) o)
              modify (v:)
 
 pop :: MonadState [Value] m => m Value
@@ -175,26 +176,25 @@ pop =
      put vs
      return v
 
-formatLabel :: String -> String
+formatLabel :: Text -> Text
 formatLabel = id firstLetterToLower
             . stripLeadingAndTrailingUnderscore
 
-stripLeadingAndTrailingUnderscore :: String -> String
+stripLeadingAndTrailingUnderscore :: Text -> Text
 stripLeadingAndTrailingUnderscore = stripLeadingUnderscore
                                   . stripTrailingUnderscore
 
-stripLeadingUnderscore :: String -> String
-stripLeadingUnderscore ('_':ls) = ls
-stripLeadingUnderscore ls       = ls
+stripLeadingUnderscore :: Text -> Text
+stripLeadingUnderscore x = maybe x stripLeadingUnderscore $ stripPrefix "_" x
 
-stripTrailingUnderscore :: String -> String
-stripTrailingUnderscore ""         = ""
-stripTrailingUnderscore (x:'_':[]) = [x]
-stripTrailingUnderscore (x:xs)     = x : stripTrailingUnderscore xs
+stripTrailingUnderscore :: Text -> Text
+stripTrailingUnderscore x = fromMaybe x $ stripSuffix "_" x
 
-firstLetterToLower :: String -> String
-firstLetterToLower ""     = ""
-firstLetterToLower (l:ls) = toLower l : ls
+firstLetterToLower :: Text -> Text
+firstLetterToLower tx =
+  case uncons tx of
+    Nothing -> ""
+    Just (c, t) -> cons (toLower c) t
 
-toObject :: ToJSON v => [(String, v)] -> Value
-toObject = object . map (uncurry (.=) . first pack)
+toObject :: ToJSON v => [(Text, v)] -> Value
+toObject = object . map (uncurry (.=))
