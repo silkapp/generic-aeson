@@ -57,7 +57,8 @@ instance GJSON U1 where
   gtoJSONf _ _ U1 = Right []
   gparseJSONf _ _ _ = return U1
 
-gtoJSON :: forall a. (Generic a, GJSON (Rep a), ConNames (Rep a), GIsEnum (Rep a)) => a -> Value
+gtoJSON :: forall a. (Generic a, GJSON (Rep a), ConNames (Rep a), GIsEnum (Rep a))
+        => a -> Value
 gtoJSON x =
   case gtoJSONf (multipleConstructors x) (isEnum (Proxy :: Proxy a)) (from x) of
     Left  [v] -> v
@@ -65,7 +66,7 @@ gtoJSON x =
     Right _   -> error "The impossible happened: labeled values returned in gtoJSON."
 
 gparseJSON :: forall a. (Generic a, GJSON (Rep a), ConNames (Rep a), GIsEnum (Rep a))
-          => Value -> Parser a
+           => Value -> Parser a
 gparseJSON
   = fmap to
   . evalStateT (gparseJSONf (multipleConstructors (undefined :: a)) False (isEnum (Proxy :: Proxy a)))

@@ -1,5 +1,5 @@
 name:                generic-aeson
-version:             0.3.0.4
+version:             0.1
 synopsis:            Derivation of Aeson instances using GHC generics.
 author:              Silk
 maintainer:          code@silk.co
