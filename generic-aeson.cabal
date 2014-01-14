@@ -1,0 +1,25 @@
+name:                generic-aeson
+version:             0.3.0.4
+synopsis:            Derivation of Aeson instances using GHC generics.
+author:              Silk
+maintainer:          code@silk.co
+license:             OtherLicense
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+  hs-source-dirs:    src
+  ghc-options:       -Wall
+  exposed-modules:
+    Generics.Generic.IsEnum
+    Generics.Generic.Aeson
+  build-depends:
+      base >= 4 && < 4.7
+    , aeson == 0.7.*
+    , generic-deriving == 1.6.*
+    , mtl >= 2.0 && < 2.2
+    , tagged >= 0.2 && < 0.8
+    , text == 1.*
+    , vector == 0.10.*
+    , attoparsec
