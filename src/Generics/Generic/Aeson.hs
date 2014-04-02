@@ -117,10 +117,6 @@ instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
 -- TODO Can remove Selector constraint?
 instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
   gparseJSONf mc smf enm =
-    -- We know the undefined here is never used. We could give it in
-    -- terms of 'f' and 'fromJust', but that requires a type signature
-    -- on this instance of gparseJSONf, which is annoying since you
-    -- can't easily give type signatures on instance methods.
     do (M1 (K1 x)) <- gparseJSONf mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
        return (M1 (K1 (Just x)))
     <|>
