@@ -13,12 +13,30 @@
   , InstanceSigs
   #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-
+-- | This module offers generic conversions to an from JSON 'Value's
+-- for data types with a 'Generic' instance.
+--
+-- The structure of the generated JSON is meant to be close to
+-- idiomatic JSON. This means:
+--
+-- * Enumerations are converted to JSON strings.
+--
+-- * Record fields become JSON keys.
+--
+-- * Data types with one unlabeled field convert to just that field.
+--
+-- * Data types with multiple unlabeled fields become arrays.
+--
+-- * Multiple constructors are represented by keys.
+--
+-- * 'Maybe' values are either an absent key, or the value.
+--
+-- See 'examples/Examples.hs' for more examples.
 module Generics.Generic.Aeson
-  ( GtoJson (..)
-  , GfromJson (..)
-  , gtoJson
+  ( gtoJson
   , gparseJson
+  , GtoJson (..)
+  , GfromJson (..)
   ) where
 
 import Control.Applicative
@@ -36,6 +54,9 @@ import qualified Data.Vector as V
 
 import Generics.Generic.IsEnum
 
+-- | Class for converting the functors from "GHC.Generics" to JSON.
+-- You generally don't need to give any custom instances. Just add
+-- 'deriving Generic' and call 'gToJson'.
 class GtoJson f where
   -- | Generically show a functor as a JSON value.  The first argument
   -- tells us if there are multiple constructors in the data type. The
@@ -45,6 +66,9 @@ class GtoJson f where
   -- pairs (for labeled fields).
   gtoJSONf :: Bool -> Bool -> f a -> Either [Value] [(Text, Value)]
 
+-- | Class for parsing the functors from "GHC.Generics" from JSON.
+-- You generally don't need to give any custom instances. Just add
+-- 'deriving Generic' and call 'gFromJson'.
 class GfromJson f where
   -- | Generically read a functor from a JSON value.  The first
   -- argument tells us if there are multiple constructors in the data
@@ -65,7 +89,9 @@ instance GtoJson U1 where
 instance GfromJson U1 where
   gparseJSONf _ _ _ = return U1
 
+-- | Convert any datatype with a 'Generic' instance to a JSON 'Value'.
 gtoJson :: forall a. (Generic a, GtoJson (Rep a), ConNames (Rep a), GIsEnum (Rep a))
+
         => a -> Value
 gtoJson x =
   case gtoJSONf (multipleConstructors x) (isEnum (Proxy :: Proxy a)) (from x) of
@@ -73,6 +99,7 @@ gtoJson x =
     Left  _   -> error "The impossible happened: multiple returned values in gtoJSON."
     Right _   -> error "The impossible happened: labeled values returned in gtoJSON."
 
+-- | Parse any datatype with a 'Generic' instance from a JSON 'Value'.
 gparseJson :: forall a. (Generic a, GfromJson (Rep a), ConNames (Rep a), GIsEnum (Rep a))
            => Value -> Parser a
 gparseJson
