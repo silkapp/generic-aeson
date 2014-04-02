@@ -114,7 +114,6 @@ instance (GfromJson f, GfromJson g) => GfromJson (f :*: g) where
 instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
   gtoJSONf _  _ (M1 (K1 Nothing )) = Right []
   gtoJSONf _  _ (M1 (K1 (Just x))) = Right [(formatLabel . pack $ selName (undefined :: M1 S c f p), toJSON x)]
--- TODO Can remove Selector constraint?
 instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
   gparseJSONf mc smf enm =
     do (M1 (K1 x)) <- gparseJSONf mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
