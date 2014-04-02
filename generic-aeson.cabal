@@ -1,6 +1,7 @@
 name:                generic-aeson
 version:             0.1
 synopsis:            Derivation of Aeson instances using GHC generics.
+description:         Derivation of Aeson instances using GHC generics.
 author:              Silk
 maintainer:          code@silk.co
 license:             BSD3
@@ -24,3 +25,7 @@ library
     , text >= 0.11 && < 1.2
     , vector == 0.10.*
     , attoparsec
+
+source-repository head
+  type:              Git
+  location:          https://github.com/silkapp/generic-aeson.git
