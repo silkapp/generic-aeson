@@ -17,7 +17,7 @@ library
     Generics.Generic.IsEnum
     Generics.Generic.Aeson
   build-depends:
-      base >= 4 && < 4.7
+      base >= 4 && < 4.8
     , aeson >= 0.6 && < 0.8
     , generic-deriving == 1.6.*
     , mtl >= 2.0 && < 2.2
