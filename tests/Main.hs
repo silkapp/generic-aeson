@@ -1,9 +1,10 @@
-{-# LANGUAGE TemplateHaskell
-           , TypeFamilies
-           , OverloadedStrings
-    , DeriveGeneric
-           #-}
-module Example where
+{-# LANGUAGE
+    DeriveGeneric
+  , OverloadedStrings
+  , TemplateHaskell
+  , TypeFamilies
+  #-}
+module Main (main) where
 
 import Data.Aeson hiding (Result)
 import Data.Aeson.Parser
@@ -150,4 +151,3 @@ tests = TestList
 
 main :: IO Counts
 main = runTestTT tests
-

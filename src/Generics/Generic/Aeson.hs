@@ -31,7 +31,7 @@
 --
 -- * 'Maybe' values are either an absent key, or the value.
 --
--- See 'examples/Examples.hs' for more examples.
+-- See 'tests/Main.hs' for more examples.
 module Generics.Generic.Aeson
   ( gtoJson
   , gparseJson
