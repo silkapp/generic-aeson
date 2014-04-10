@@ -1,7 +1,7 @@
 language: haskell
 install:
-  - "cabal install --dry-run -v3"
-  - "travis_retry cabal install --only-dependencies --force-reinstalls"
+  - "cabal install --enable-tests -v3 --dry-run"
+  - "travis_retry cabal install --only-dependencies --enable-tests --force-reinstalls"
 script:
   - "cabal test --jobs=1"
 notifications:
