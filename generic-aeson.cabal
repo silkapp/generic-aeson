@@ -10,21 +10,29 @@ category:            Data
 build-type:          Simple
 cabal-version:       >=1.8
 
+extra-source-files:
+  LICENSE
+  README.md
+
+source-repository head
+  type:              git
+  location:          https://github.com/silkapp/generic-aeson.git
+
 library
-  hs-source-dirs:    src
   ghc-options:       -Wall
+  hs-source-dirs:    src
   exposed-modules:
-    Generics.Generic.IsEnum
     Generics.Generic.Aeson
+    Generics.Generic.IsEnum
   build-depends:
       base >= 4 && < 4.8
     , aeson >= 0.6 && < 0.8
+    , attoparsec == 0.11.*
     , generic-deriving == 1.6.*
     , mtl >= 2.0 && < 2.2
     , tagged >= 0.2 && < 0.8
     , text >= 0.11 && < 1.2
     , vector == 0.10.*
-    , attoparsec == 0.11.*
 
 test-suite generic-aeson-tests
   ghc-options:       -Wall
@@ -33,12 +41,9 @@ test-suite generic-aeson-tests
   type:              exitcode-stdio-1.0
   build-depends:
       base
+    , HUnit >= 1.2 && < 1.3
     , aeson
     , attoparsec
-    , generic-aeson
     , bytestring >= 0.10 && < 0.12
-    , HUnit >= 1.2 && < 1.3
+    , generic-aeson
 
-source-repository head
-  type:              Git
-  location:          https://github.com/silkapp/generic-aeson.git
