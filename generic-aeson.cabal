@@ -1,5 +1,5 @@
 name:                generic-aeson
-version:             0.1.0.1
+version:             0.1.0.2
 synopsis:            Derivation of Aeson instances using GHC generics.
 description:         Derivation of Aeson instances using GHC generics.
 author:              Silk
@@ -11,6 +11,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 extra-source-files:
+  CHANGELOG.md
   LICENSE
   README.md
 
