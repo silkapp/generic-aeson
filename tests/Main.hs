@@ -12,9 +12,11 @@ import Data.Attoparsec.Lazy
 import Data.List (intersperse)
 import GHC.Generics (Generic)
 import Generics.Generic.Aeson
-import Test.HUnit
 import qualified Data.Aeson.Types as A
 import Data.ByteString.Lazy (ByteString)
+import Test.Tasty
+import Test.Tasty.HUnit
+import Test.Tasty.TH
 
 data A = A deriving (Generic, Show, Eq)
 instance ToJSON   A where toJSON    = gtoJson
@@ -123,31 +125,32 @@ i a = case (parse value . encode) a of
   Done _ r -> case fromJSON r of A.Success v -> Right v; Error s -> Left $ "fromJSON r=" ++ show r ++ ", s=" ++ s
   Fail _ ss e -> Left . concat $ intersperse "," (ss ++ [e])
 
-tests :: Test
-tests = TestList
-  [ TestCase $ assertEqual "testA" (f "\"a\"",Right A) testA
-  , TestCase $ assertEqual "testB" (f "{\"b\":1}",Right (B {b = 1})) testB
-  , TestCase $ assertEqual "testD" (f "{\"d1\":1,\"d2\":\"aap\"}",Right (D {d1 = 1, d2 = "aap"})) testD
-  , TestCase $ assertEqual "testE" (f "1",Right (E 1)) testE
-  , TestCase $ assertEqual "testF" (f "[1,\"aap\"]",Right (F 1 "aap")) testF
-  , TestCase $ assertEqual "testG" (f "{\"g1\":1}",f "{\"g2\":\"aap\"}",Right (G1 1),Right (G2 "aap")) testG
-  , TestCase $ assertEqual "testH" (f "{\"h1\":{\"h1\":1}}",f "{\"h2\":{\"h2\":\"aap\"}}",Right (H1 {h1 = 1}),Right (H2 {h2 = "aap"})) testH
-  , TestCase $ assertEqual "testJ" (f "{\"j1\":{\"j1\":1,\"j2\":\"aap\"}}",f "{\"j2\":{}}",Right (J1 {j1 = 1, j2 = "aap"}),Right J2) testJ
-  , TestCase $ assertEqual "testL" (f "{\"l1\":{}}",f "{\"l2\":[1,\"aap\"]}",Right L1,Right (L2 1 "aap")) testL
-  , TestCase $ assertEqual "testM" (f "{\"m1\":{}}",f "{\"m2\":[1,{\"m1\":{}}]}",f "{\"m2\":[1,{\"m2\":[2,{\"m1\":{}}]}]}",Right M1,Right (M2 1 M1),Right (M2 1 (M2 2 M1))) testM
-  , TestCase $ assertEqual "testN" (f "{\"n1\":{}}",f "{\"n2\":{\"n2\":{\"n1\":{}},\"n1\":1}}",f "{\"n2\":{\"n1\":1,\"n2\":{\"n2\":{\"n1\":2,\"n2\":{\"n1\":{}}}}}}",Right N1,Right (N2 {n1 = 1, n2 = N1}),Right (N2 {n1 = 1, n2 = N2 {n1 = 2, n2 = N1}})) testN
-  , TestCase $ assertEqual "testO" (f "{\"o\":[1,2,3]}",Right (O {o = [1,2,3]})) testO
-  , TestCase $ assertEqual "testP" (f "[1,2,3]",Right (P [1,2,3])) testP
-  , TestCase $ assertEqual "testQ" (f "[1,2,3]",Right (Q 1 2 3)) testQ
-  , TestCase $ assertEqual "testT" (f "{}", f "{\"r1\":1}",Right (T {r1 = Nothing}),Right (T {r1 = Just 1})) testT
-  , TestCase $ assertEqual "testV" (f "\"v1\"",f "\"v2\"",Right V1,Right V2) testV
-  , TestCase $ assertEqual "testW" (f "{\"underscore1\":1,\"underscore2\":2}",Right (W {underscore1_ = 1, _underscore2 = 2})) testW
-  ]
-  where
-  f :: ByteString -> Value
-  f = fromResult . parse value
-  fromResult (Done _ r) = r
-  fromResult _ = error "Boo"
+case_a = assertEqual "testA" (f "\"a\"",Right A) testA
+case_b = assertEqual "testB" (f "{\"b\":1}",Right (B {b = 1})) testB
+case_d = assertEqual "testD" (f "{\"d1\":1,\"d2\":\"aap\"}",Right (D {d1 = 1, d2 = "aap"})) testD
+case_e = assertEqual "testE" (f "1",Right (E 1)) testE
+case_f = assertEqual "testF" (f "[1,\"aap\"]",Right (F 1 "aap")) testF
+case_g = assertEqual "testG" (f "{\"g1\":1}",f "{\"g2\":\"aap\"}",Right (G1 1),Right (G2 "aap")) testG
+case_h = assertEqual "testH" (f "{\"h1\":{\"h1\":1}}",f "{\"h2\":{\"h2\":\"aap\"}}",Right (H1 {h1 = 1}),Right (H2 {h2 = "aap"})) testH
+case_j = assertEqual "testJ" (f "{\"j1\":{\"j1\":1,\"j2\":\"aap\"}}",f "{\"j2\":{}}",Right (J1 {j1 = 1, j2 = "aap"}),Right J2) testJ
+case_l = assertEqual "testL" (f "{\"l1\":{}}",f "{\"l2\":[1,\"aap\"]}",Right L1,Right (L2 1 "aap")) testL
+case_m = assertEqual "testM" (f "{\"m1\":{}}",f "{\"m2\":[1,{\"m1\":{}}]}",f "{\"m2\":[1,{\"m2\":[2,{\"m1\":{}}]}]}",Right M1,Right (M2 1 M1),Right (M2 1 (M2 2 M1))) testM
+case_n = assertEqual "testN" (f "{\"n1\":{}}",f "{\"n2\":{\"n2\":{\"n1\":{}},\"n1\":1}}",f "{\"n2\":{\"n1\":1,\"n2\":{\"n2\":{\"n1\":2,\"n2\":{\"n1\":{}}}}}}",Right N1,Right (N2 {n1 = 1, n2 = N1}),Right (N2 {n1 = 1, n2 = N2 {n1 = 2, n2 = N1}})) testN
+case_o = assertEqual "testO" (f "{\"o\":[1,2,3]}",Right (O {o = [1,2,3]})) testO
+case_p = assertEqual "testP" (f "[1,2,3]",Right (P [1,2,3])) testP
+case_q = assertEqual "testQ" (f "[1,2,3]",Right (Q 1 2 3)) testQ
+case_t = assertEqual "testT" (f "{}", f "{\"r1\":1}",Right (T {r1 = Nothing}),Right (T {r1 = Just 1})) testT
+case_v = assertEqual "testV" (f "\"v1\"",f "\"v2\"",Right V1,Right V2) testV
+case_w = assertEqual "testW" (f "{\"underscore1\":1,\"underscore2\":2}",Right (W {underscore1_ = 1, _underscore2 = 2})) testW
 
-main :: IO Counts
-main = runTestTT tests
+f :: ByteString -> Value
+f = fromResult . parse value
+
+fromResult (Done _ r) = r
+fromResult _ = error "Boo"
+
+tests :: TestTree
+tests = $testGroupGenerator
+
+main :: IO ()
+main = defaultMain $ testGroup "generic-aeson" [tests]
