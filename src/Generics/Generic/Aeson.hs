@@ -10,8 +10,7 @@
   , TupleSections
   , TypeOperators
   , TypeSynonymInstances
-  , InstanceSigs
-  #-}
+  , InstanceSigs #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- | This module offers generic conversions to an from JSON 'Value's
 -- for data types with a 'Generic' instance.
