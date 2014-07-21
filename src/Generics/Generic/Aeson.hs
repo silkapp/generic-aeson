@@ -1,18 +1,13 @@
 {-# LANGUAGE
     CPP
-  , DeriveGeneric
   , FlexibleContexts
   , FlexibleInstances
-  , MultiParamTypeClasses
   , OverlappingInstances
   , OverloadedStrings
   , ScopedTypeVariables
   , TupleSections
   , TypeOperators
-  , TypeSynonymInstances
-  , InstanceSigs
   #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 -- | This module offers generic conversions to an from JSON 'Value's
 -- for data types with a 'Generic' instance.
 --
@@ -37,6 +32,7 @@ module Generics.Generic.Aeson
   , gparseJson
   , GtoJson (..)
   , GfromJson (..)
+  , formatLabel
   ) where
 
 import Control.Applicative
@@ -44,15 +40,14 @@ import Control.Monad.Error
 import Control.Monad.State
 import Data.Aeson
 import Data.Aeson.Types hiding (GFromJSON, GToJSON)
-import Data.Char
-import Data.Maybe
 import Data.Proxy
-import Data.Text (Text, cons, pack, stripPrefix, stripSuffix, uncons, unpack)
+import Data.Text (Text)
 import GHC.Generics
 import Generics.Deriving.ConNames
+import qualified Data.Text   as T
 import qualified Data.Vector as V
 
-import Generics.Generic.IsEnum
+import Generics.Generic.Aeson.Util
 
 -- | Class for converting the functors from "GHC.Generics" to JSON.
 -- You generally don't need to give any custom instances. Just add
@@ -94,7 +89,7 @@ gtoJson :: forall a. (Generic a, GtoJson (Rep a), ConNames (Rep a), GIsEnum (Rep
 
         => a -> Value
 gtoJson x =
-  case gtoJSONf (multipleConstructors x) (isEnum (Proxy :: Proxy a)) (from x) of
+  case gtoJSONf (multipleConstructors $ conNames x) (isEnum (Proxy :: Proxy a)) (from x) of
     Left  [v] -> v
     Left  _   -> error "The impossible happened: multiple returned values in gtoJSON."
     Right _   -> error "The impossible happened: labeled values returned in gtoJSON."
@@ -104,7 +99,7 @@ gparseJson :: forall a. (Generic a, GfromJson (Rep a), ConNames (Rep a), GIsEnum
            => Value -> Parser a
 gparseJson
   = fmap to
-  . evalStateT (gparseJSONf (multipleConstructors (undefined :: a)) False (isEnum (Proxy :: Proxy a)))
+  . evalStateT (gparseJSONf (multipleConstructors $ conNames (undefined :: a)) False (isEnum (Proxy :: Proxy a)))
   . return
 
 -- Structure type for constant values.
@@ -140,7 +135,7 @@ instance (GfromJson f, GfromJson g) => GfromJson (f :*: g) where
 
 instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
   gtoJSONf _  _ (M1 (K1 Nothing )) = Right []
-  gtoJSONf _  _ (M1 (K1 (Just x))) = Right [(formatLabel . pack $ selName (undefined :: M1 S c f p), toJSON x)]
+  gtoJSONf _  _ (M1 (K1 (Just x))) = Right [(selNameT (undefined :: M1 S c f p), toJSON x)]
 instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
   gparseJSONf mc smf enm =
     do (M1 (K1 x)) <- gparseJSONf mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
@@ -154,7 +149,7 @@ instance GfromJson f => GfromJson (M1 D c f) where
   gparseJSONf a b x = M1 <$> gparseJSONf a b x
 
 instance (Constructor c, GtoJson f) => GtoJson (M1 C c f) where
-  gtoJSONf _  True  (M1 _) = Left [toJSON . formatLabel . pack $ conName (undefined :: M1 C c f p)]
+  gtoJSONf _  True  (M1 _) = Left [toJSON $ conNameT (undefined :: M1 C c f p)]
   gtoJSONf mc False (M1 x) =
     case gtoJSONf mc False x of
       -- Single field constructors are not wrapped in an array.
@@ -165,26 +160,26 @@ instance (Constructor c, GtoJson f) => GtoJson (M1 C c f) where
       wrap = if mc
              then toObject
                 . return
-                . (formatLabel . pack $ conName (undefined :: M1 C c f p), )
+                . (conNameT (undefined :: M1 C c f p), )
              else id
 instance (Constructor c, GfromJson f) => GfromJson (M1 C c f) where
   gparseJSONf mc smf True =
     do str    <- pop
        conStr <- lift (parseJSON str)
-       let expectedConStr = formatLabel . pack $ conName (undefined :: M1 C c f p)
+       let expectedConStr = conNameT (undefined :: M1 C c f p)
        unless (conStr == expectedConStr) $
-         fail $ "Error parsing enumeration: expected " ++ unpack expectedConStr ++ ", found " ++ unpack conStr ++ "."
+         fail $ "Error parsing enumeration: expected " ++ T.unpack expectedConStr ++ ", found " ++ T.unpack conStr ++ "."
        M1 <$> gparseJSONf mc smf True
   gparseJSONf mc smf False =
     do when mc (selProp "C" propName)
        M1 <$> gparseJSONf mc smf False
     where
-      propName = formatLabel . pack $ conName (undefined :: M1 C c f p)
+      propName = conNameT (undefined :: M1 C c f p)
 
 instance (Selector c, GtoJson f) => GtoJson (M1 S c f) where
   gtoJSONf mc enm (M1 x) =
     case gtoJSONf mc enm x of
-      Left  [v] -> case formatLabel . pack $ selName (undefined :: M1 S c f p) of
+      Left  [v] -> case selNameT (undefined :: M1 S c f p) of
         "" -> Left [v]
         n  -> Right [(n, v)]
       Left  _   -> error "The impossible happened: multiple returned values inside label in GJSON instance for S."
@@ -194,10 +189,7 @@ instance (Selector c, GfromJson f) => GfromJson (M1 S c f) where
     do selProp "S" propName
        M1 <$> gparseJSONf mc smf enm
     where
-      propName = formatLabel . pack $ selName (undefined :: M1 S c f p)
-
-multipleConstructors :: (Generic a, ConNames (Rep a)) => a -> Bool
-multipleConstructors = (> 1) . length . conNames
+      propName = selNameT (undefined :: M1 S c f p)
 
 selProp :: Text -> Text -> StateT [Value] Parser ()
 selProp cname propName =
@@ -214,26 +206,6 @@ pop =
   do (v:vs) <- get
      put vs
      return v
-
-formatLabel :: Text -> Text
-formatLabel = id firstLetterToLower
-            . stripLeadingAndTrailingUnderscore
-
-stripLeadingAndTrailingUnderscore :: Text -> Text
-stripLeadingAndTrailingUnderscore = stripLeadingUnderscore
-                                  . stripTrailingUnderscore
-
-stripLeadingUnderscore :: Text -> Text
-stripLeadingUnderscore x = maybe x stripLeadingUnderscore $ stripPrefix "_" x
-
-stripTrailingUnderscore :: Text -> Text
-stripTrailingUnderscore x = fromMaybe x $ stripSuffix "_" x
-
-firstLetterToLower :: Text -> Text
-firstLetterToLower tx =
-  case uncons tx of
-    Nothing -> ""
-    Just (c, t) -> cons (toLower c) t
 
 toObject :: ToJSON v => [(Text, v)] -> Value
 toObject = object . map (uncurry (.=))

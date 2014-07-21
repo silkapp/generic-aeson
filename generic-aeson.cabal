@@ -24,6 +24,7 @@ library
   hs-source-dirs:    src
   exposed-modules:
     Generics.Generic.Aeson
+    Generics.Generic.Aeson.Util
     Generics.Generic.IsEnum
   build-depends:
       base >= 4 && < 4.8
