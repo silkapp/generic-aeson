@@ -17,7 +17,6 @@ import Data.Char (toLower)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import GHC.Generics
-import Generics.Deriving.ConNames
 import qualified Data.Text as T
 
 import Generics.Generic.IsEnum
@@ -50,4 +49,4 @@ firstLetterToLower tx =
     Just (c, t) -> T.cons (toLower c) t
 
 multipleConstructors :: [a] -> Bool
-multipleConstructors = (> 1) . length . conNames
+multipleConstructors = (> 1) . length
