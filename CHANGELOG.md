@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.1.1.1
+
+* Fix regression in implementation of `multipleConstructors` introduced in 0.1.1
+
 ### 0.1.1
 
 * Add `Generics.Generic.Aeson.Util` module with helper function for interoperating packages
