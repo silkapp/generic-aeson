@@ -33,6 +33,10 @@ module Generics.Generic.Aeson
   , GtoJson (..)
   , GfromJson (..)
   , formatLabel
+  , Settings (..)
+  , defaultSettings
+  , gtoJsonWithSettings
+  , gparseJsonWithSettings
   ) where
 
 import Control.Applicative
@@ -59,7 +63,7 @@ class GtoJson f where
   -- constructors). A functor is then converted to either a list
   -- of values (for non-labeled fields) or a list of String/value
   -- pairs (for labeled fields).
-  gtoJSONf :: Bool -> Bool -> f a -> Either [Value] [(Text, Value)]
+  gtoJSONf :: Settings -> Bool -> Bool -> f a -> Either [Value] [(Text, Value)]
 
 -- | Class for parsing the functors from "GHC.Generics" from JSON.
 -- You generally don't need to give any custom instances. Just add
@@ -73,58 +77,71 @@ class GfromJson f where
   -- data type is an enumeration (only empty constructors). The third
   -- is a function for parsing the recursive positions. A JSON value
   -- is then parsed to either a functor, or a failure.
-  gparseJSONf :: Bool -> Bool -> Bool -> StateT [Value] Parser (f a)
+  gparseJSONf :: Settings -> Bool -> Bool -> Bool -> StateT [Value] Parser (f a)
 
 -- Void: Used for data types without constructors
 -- instance GJSON V1
 
 -- Unit: Used for constructors without arguments
 instance GtoJson U1 where
-  gtoJSONf _ _ U1 = Right []
+  gtoJSONf set _ _ U1 = Right []
 instance GfromJson U1 where
-  gparseJSONf _ _ _ = return U1
+  gparseJSONf set _ _ _ = return U1
 
 -- | Convert any datatype with a 'Generic' instance to a JSON 'Value'.
-gtoJson :: forall a. (Generic a, GtoJson (Rep a), ConNames (Rep a), GIsEnum (Rep a))
 
-        => a -> Value
-gtoJson x =
-  case gtoJSONf (multipleConstructors $ conNames x) (isEnum (Proxy :: Proxy a)) (from x) of
+gtoJson
+  :: forall a. (Generic a, GtoJson (Rep a), ConNames (Rep a), GIsEnum (Rep a))
+  => a -> Value
+gtoJson = gtoJsonWithSettings defaultSettings
+
+gtoJsonWithSettings
+  :: forall a. (Generic a, GtoJson (Rep a), ConNames (Rep a), GIsEnum (Rep a))
+   => Settings -> a -> Value
+gtoJsonWithSettings settings x =
+  case gtoJSONf settings (multipleConstructors $ conNames x) (isEnum (Proxy :: Proxy a)) (from x) of
     Left  [v] -> v
     Left  _   -> error "The impossible happened: multiple returned values in gtoJSON."
     Right _   -> error "The impossible happened: labeled values returned in gtoJSON."
 
 -- | Parse any datatype with a 'Generic' instance from a JSON 'Value'.
-gparseJson :: forall a. (Generic a, GfromJson (Rep a), ConNames (Rep a), GIsEnum (Rep a))
-           => Value -> Parser a
 gparseJson
+  :: forall a. (Generic a, GfromJson (Rep a), ConNames (Rep a), GIsEnum (Rep a))
+  => Value -> Parser a
+gparseJson = gparseJsonWithSettings defaultSettings
+
+gparseJsonWithSettings
+  :: forall a. (Generic a, GfromJson (Rep a), ConNames (Rep a), GIsEnum (Rep a))
+  => Settings -> Value -> Parser a
+gparseJsonWithSettings set
   = fmap to
-  . evalStateT (gparseJSONf (multipleConstructors $ conNames (undefined :: a)) False (isEnum (Proxy :: Proxy a)))
+  . evalStateT (gparseJSONf set (multipleConstructors $ conNames (undefined :: a)) False (isEnum (Proxy :: Proxy a)))
   . return
 
 -- Structure type for constant values.
 instance (ToJSON c) => GtoJson (K1 a c) where
-  gtoJSONf _ _ (K1 a) = Left [toJSON a]
+  gtoJSONf set _ _ (K1 a) = Left [toJSON a]
 instance (FromJSON c) => GfromJson (K1 a c) where
-  gparseJSONf _ _ _   = lift . fmap K1 . parseJSON =<< pop
+  gparseJSONf set _ _ _   = lift . fmap K1 . parseJSON =<< pop
 
 instance (GtoJson f, GtoJson g) => GtoJson (f :+: g) where
-  gtoJSONf mc enm (L1 x) = gtoJSONf mc enm x
-  gtoJSONf mc enm (R1 x) = gtoJSONf mc enm x
+  gtoJSONf set mc enm (L1 x) = gtoJSONf set mc enm x
+  gtoJSONf set mc enm (R1 x) = gtoJSONf set mc enm x
 instance (GfromJson f, GfromJson g) => GfromJson (f :+: g) where
-  gparseJSONf mc smf enm  =  L1 <$> gparseJSONf mc smf enm
-                        <|> R1 <$> gparseJSONf mc smf enm
+  gparseJSONf set mc smf enm
+    =  L1 <$> gparseJSONf set mc smf enm
+   <|> R1 <$> gparseJSONf set mc smf enm
 
 instance (GtoJson f, GtoJson g) => GtoJson (f :*: g) where
-  gtoJSONf mc enm (x :*: y) =
-    case (gtoJSONf mc enm x, gtoJSONf mc enm y) of
+  gtoJSONf set mc enm (x :*: y) =
+    case (gtoJSONf set mc enm x, gtoJSONf set mc enm y) of
       (Left  xvs, Left  yvs) -> Left  (xvs ++ yvs)
       (Right xvs, Right yvs) -> Right (xvs ++ yvs)
       _                      -> error "The impossible happened: product of mixed label and non-label fields in GJSON instance for (:*:)."
 instance (GfromJson f, GfromJson g) => GfromJson (f :*: g) where
-  gparseJSONf mc smf enm =
+  gparseJSONf set mc smf enm =
     do unless smf selFields
-       (:*:) <$> gparseJSONf mc True enm <*> gparseJSONf mc True enm
+       (:*:) <$> gparseJSONf set mc True enm <*> gparseJSONf set mc True enm
     where
       selFields =
         do v <- pop
@@ -134,24 +151,24 @@ instance (GfromJson f, GfromJson g) => GfromJson (f :*: g) where
              _          -> fail "Expected object or array in gparseJSONf for (:*:)."
 
 instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
-  gtoJSONf _  _ (M1 (K1 Nothing )) = Right []
-  gtoJSONf _  _ (M1 (K1 (Just x))) = Right [(selNameT (undefined :: M1 S c f p), toJSON x)]
+  gtoJSONf set _ _ (M1 (K1 Nothing )) = Right []
+  gtoJSONf set _ _ (M1 (K1 (Just x))) = Right [(selNameT set (undefined :: M1 S c f p), toJSON x)]
 instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
-  gparseJSONf mc smf enm =
-    do (M1 (K1 x)) <- gparseJSONf mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
+  gparseJSONf set mc smf enm =
+    do (M1 (K1 x)) <- gparseJSONf set mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
        return (M1 (K1 (Just x)))
     <|>
     return (M1 (K1 Nothing))
 
 instance GtoJson f => GtoJson (M1 D c f) where
-  gtoJSONf a b (M1 x) = gtoJSONf a b x
+  gtoJSONf set a b (M1 x) = gtoJSONf set a b x
 instance GfromJson f => GfromJson (M1 D c f) where
-  gparseJSONf a b x = M1 <$> gparseJSONf a b x
+  gparseJSONf set a b x = M1 <$> gparseJSONf set a b x
 
 instance (Constructor c, GtoJson f) => GtoJson (M1 C c f) where
-  gtoJSONf _  True  (M1 _) = Left [toJSON $ conNameT (undefined :: M1 C c f p)]
-  gtoJSONf mc False (M1 x) =
-    case gtoJSONf mc False x of
+  gtoJSONf set _  True  (M1 _) = Left [toJSON $ conNameT set (undefined :: M1 C c f p)]
+  gtoJSONf set mc False (M1 x) =
+    case gtoJSONf set mc False x of
       -- Single field constructors are not wrapped in an array.
       Left  [v] -> Left [wrap v]
       Left  vs  -> Left [wrap . Array $ V.fromList vs]
@@ -160,36 +177,36 @@ instance (Constructor c, GtoJson f) => GtoJson (M1 C c f) where
       wrap = if mc
              then toObject
                 . return
-                . (conNameT (undefined :: M1 C c f p), )
+                . (conNameT set (undefined :: M1 C c f p), )
              else id
 instance (Constructor c, GfromJson f) => GfromJson (M1 C c f) where
-  gparseJSONf mc smf True =
+  gparseJSONf set mc smf True =
     do str    <- pop
        conStr <- lift (parseJSON str)
-       let expectedConStr = conNameT (undefined :: M1 C c f p)
+       let expectedConStr = conNameT set (undefined :: M1 C c f p)
        unless (conStr == expectedConStr) $
          fail $ "Error parsing enumeration: expected " ++ T.unpack expectedConStr ++ ", found " ++ T.unpack conStr ++ "."
-       M1 <$> gparseJSONf mc smf True
-  gparseJSONf mc smf False =
+       M1 <$> gparseJSONf set mc smf True
+  gparseJSONf set mc smf False =
     do when mc (selProp "C" propName)
-       M1 <$> gparseJSONf mc smf False
+       M1 <$> gparseJSONf set mc smf False
     where
-      propName = conNameT (undefined :: M1 C c f p)
+      propName = conNameT set (undefined :: M1 C c f p)
 
 instance (Selector c, GtoJson f) => GtoJson (M1 S c f) where
-  gtoJSONf mc enm (M1 x) =
-    case gtoJSONf mc enm x of
-      Left  [v] -> case selNameT (undefined :: M1 S c f p) of
+  gtoJSONf set mc enm (M1 x) =
+    case gtoJSONf set mc enm x of
+      Left  [v] -> case selNameT set (undefined :: M1 S c f p) of
         "" -> Left [v]
         n  -> Right [(n, v)]
       Left  _   -> error "The impossible happened: multiple returned values inside label in GJSON instance for S."
       Right _   -> error "The impossible happened: label inside a label in GJSON instance for S."
 instance (Selector c, GfromJson f) => GfromJson (M1 S c f) where
-  gparseJSONf mc smf enm =
+  gparseJSONf set mc smf enm =
     do selProp "S" propName
-       M1 <$> gparseJSONf mc smf enm
+       M1 <$> gparseJSONf set mc smf enm
     where
-      propName = selNameT (undefined :: M1 S c f p)
+      propName = selNameT set (undefined :: M1 S c f p)
 
 selProp :: Text -> Text -> StateT [Value] Parser ()
 selProp cname propName =
