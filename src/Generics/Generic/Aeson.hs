@@ -84,9 +84,9 @@ class GfromJson f where
 
 -- Unit: Used for constructors without arguments
 instance GtoJson U1 where
-  gtoJSONf set _ _ U1 = Right []
+  gtoJSONf _ _ _ U1 = Right []
 instance GfromJson U1 where
-  gparseJSONf set _ _ _ = return U1
+  gparseJSONf _ _ _ _ = return U1
 
 -- | Convert any datatype with a 'Generic' instance to a JSON 'Value'.
 
@@ -120,9 +120,9 @@ gparseJsonWithSettings set
 
 -- Structure type for constant values.
 instance (ToJSON c) => GtoJson (K1 a c) where
-  gtoJSONf set _ _ (K1 a) = Left [toJSON a]
+  gtoJSONf _ _ _ (K1 a) = Left [toJSON a]
 instance (FromJSON c) => GfromJson (K1 a c) where
-  gparseJSONf set _ _ _   = lift . fmap K1 . parseJSON =<< pop
+  gparseJSONf _ _ _ _   = lift . fmap K1 . parseJSON =<< pop
 
 instance (GtoJson f, GtoJson g) => GtoJson (f :+: g) where
   gtoJSONf set mc enm (L1 x) = gtoJSONf set mc enm x
@@ -151,7 +151,7 @@ instance (GfromJson f, GfromJson g) => GfromJson (f :*: g) where
              _          -> fail "Expected object or array in gparseJSONf for (:*:)."
 
 instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
-  gtoJSONf set _ _ (M1 (K1 Nothing )) = Right []
+  gtoJSONf _   _ _ (M1 (K1 Nothing )) = Right []
   gtoJSONf set _ _ (M1 (K1 (Just x))) = Right [(selNameT set (undefined :: M1 S c f p), toJSON x)]
 instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
   gparseJSONf set mc smf enm =
