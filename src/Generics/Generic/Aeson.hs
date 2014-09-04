@@ -48,8 +48,9 @@ import Data.Proxy
 import Data.Text (Text)
 import GHC.Generics
 import Generics.Deriving.ConNames
-import qualified Data.Text   as T
-import qualified Data.Vector as V
+import qualified Data.HashMap.Strict as H
+import qualified Data.Text           as T
+import qualified Data.Vector         as V
 
 import Generics.Generic.Aeson.Util
 
@@ -199,14 +200,26 @@ instance (Selector c, GfromJson f) => GfromJson (M1 S c f) where
       propName = selNameT set (undefined :: M1 S c f p)
 
 instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
-  gtoJSONf _   _  _   (M1 (K1 Nothing )) = Right []
+  gtoJSONf set   _  _   (M1 (K1 n@Nothing)) = case selNameT set (undefined :: M1 S c f p) of
+    "" -> Left [toJSON n]
+    _  -> Right []
   gtoJSONf set mc enm (M1 (K1 (Just x))) = gtoJSONf set mc enm (M1 (K1 x) :: (M1 S c (K1 i a)) p)
 instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
   gparseJSONf set mc smf enm =
-    do (M1 (K1 x)) <- gparseJSONf set mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
+    do (M1 (K1 x)) <- parser
        return (M1 (K1 (Just x)))
     <|>
-    return (M1 (K1 Nothing))
+    do case selNameT set (undefined :: M1 S c (K1 i a) p) of
+         "" -> do o <- pop
+                  M1 . K1 <$> lift (parseJSON o)
+         n  -> do o <- pop
+                  case o of
+                    Object h | H.member n h -> error impossible <$> parser
+                             | otherwise    -> return $ M1 (K1 Nothing)
+                    _ -> lift $ typeMismatch "Object" (Array V.empty)
+    where
+      parser = (gparseJSONf set mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p))
+      impossible = "The impossible happened: parser succeeded after failing in GfromJson S Maybe"
 
 selProp :: Text -> Text -> StateT [Value] Parser ()
 selProp cname propName =
