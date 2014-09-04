@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0.0
+
+* Add `gtoJsonWithSettings` and `gparseJsonWithSettings` to customize
+  the generated JSON, currently only to strip specified prefixes from
+  record fields.
+* Format Change: The behavior of Maybes was inconsistent and buggy,
+  now we always map `Just` directly to the value, and `Nothing` to
+  null if on the top level or in an unnamed field and remove the
+  property if it's in a named field.
+* Changed the type of `selNameT` to return a `Maybe Text` which will
+  be `Nothing` instead of `""` (unnamed fields)
+
 #### 0.1.1.1
 
 * Fix regression in implementation of `multipleConstructors` introduced in 0.1.1
