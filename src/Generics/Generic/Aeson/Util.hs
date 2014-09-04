@@ -27,8 +27,10 @@ import Generics.Generic.IsEnum
 conNameT :: forall c (t :: * -> (* -> *) -> * -> *) (f :: * -> *) a. Constructor c => Settings -> t c f a -> Text
 conNameT set x = formatLabel set . T.pack . conName $ x
 
-selNameT :: forall s (t :: * -> (* -> *) -> * -> *) (f :: * -> *) a. Selector s => Settings -> t s f a -> Text
-selNameT set x = formatLabel set . T.pack . selName $ x
+selNameT :: forall s (t :: * -> (* -> *) -> * -> *) (f :: * -> *) a. Selector s => Settings -> t s f a -> Maybe Text
+selNameT set x = case formatLabel set . T.pack . selName $ x of
+  "" -> Nothing
+  n  -> Just n
 
 -- | Lowercases the first letter and strips leading and trailing underscores.
 formatLabel :: Settings -> Text -> Text

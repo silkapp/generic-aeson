@@ -179,17 +179,20 @@ instance (Constructor c, GfromJson f) => GfromJson (M1 C c f) where
          fail $ "Error parsing enumeration: expected " ++ T.unpack expectedConStr ++ ", found " ++ T.unpack conStr ++ "."
        M1 <$> gparseJSONf set mc smf True
   gparseJSONf set mc smf False =
-    do when mc (selProp "C" propName)
+    do
+       when mc (selProp "C" propName)
        M1 <$> gparseJSONf set mc smf False
     where
-      propName = conNameT set (undefined :: M1 C c f p)
+      propName = case conNameT set (undefined :: M1 C c f p) of
+        "" -> Nothing
+        n  -> Just n
 
 instance (Selector c, GtoJson f) => GtoJson (M1 S c f) where
   gtoJSONf set mc enm (M1 x) =
     case gtoJSONf set mc enm x of
       Left  [v] -> case selNameT set (undefined :: M1 S c f p) of
-        "" -> Left [v]
-        n  -> Right [(n, v)]
+        Nothing -> Left [v]
+        Just n  -> Right [(n, v)]
       Left  _   -> error "The impossible happened: multiple returned values inside label in GJSON instance for S."
       Right _   -> error "The impossible happened: label inside a label in GJSON instance for S."
 instance (Selector c, GfromJson f) => GfromJson (M1 S c f) where
@@ -201,8 +204,8 @@ instance (Selector c, GfromJson f) => GfromJson (M1 S c f) where
 
 instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
   gtoJSONf set   _  _   (M1 (K1 n@Nothing)) = case selNameT set (undefined :: M1 S c f p) of
-    "" -> Left [toJSON n]
-    _  -> Right []
+    Nothing -> Left [toJSON n]
+    Just _  -> Right []
   gtoJSONf set mc enm (M1 (K1 (Just x))) = gtoJSONf set mc enm (M1 (K1 x) :: (M1 S c (K1 i a)) p)
 instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
   gparseJSONf set mc smf enm =
@@ -210,26 +213,28 @@ instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
        return (M1 (K1 (Just x)))
     <|>
     do case selNameT set (undefined :: M1 S c (K1 i a) p) of
-         "" -> do o <- pop
-                  M1 . K1 <$> lift (parseJSON o)
-         n  -> do o <- pop
-                  case o of
-                    Object h | H.member n h -> error impossible <$> parser
-                             | otherwise    -> return $ M1 (K1 Nothing)
-                    _ -> lift $ typeMismatch "Object" (Array V.empty)
+         Nothing ->
+           do o <- pop
+              M1 . K1 <$> lift (parseJSON o)
+         Just n  ->
+           do o <- pop
+              case o of
+                Object h | H.member n h -> error impossible <$> parser
+                         | otherwise    -> return $ M1 (K1 Nothing)
+                _ -> lift $ typeMismatch "Object" (Array V.empty)
     where
       parser = (gparseJSONf set mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p))
       impossible = "The impossible happened: parser succeeded after failing in GfromJson S Maybe"
 
-selProp :: Text -> Text -> StateT [Value] Parser ()
+selProp :: Text -> Maybe Text -> StateT [Value] Parser ()
 selProp cname propName =
   case propName of
-    "" -> do o <- pop
-             modify (o:)
-    _  -> do o <- pop
-             v <- lift (withObject ("Expected property " ++ show propName ++ " in object in gparseJSONf for " ++ show cname ++ ".")
-                                   (.: propName) o)
-             modify (v:)
+    Nothing -> do o <- pop
+                  modify (o:)
+    Just p  -> do o <- pop
+                  v <- lift (withObject ("Expected property " ++ show propName ++ " in object in gparseJSONf for " ++ show cname ++ ".")
+                                        (.: p) o)
+                  modify (v:)
 
 pop :: MonadState [Value] m => m Value
 pop =
