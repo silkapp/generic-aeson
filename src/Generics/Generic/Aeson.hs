@@ -150,16 +150,6 @@ instance (GfromJson f, GfromJson g) => GfromJson (f :*: g) where
              Array vs   -> put (V.toList vs)
              _          -> fail "Expected object or array in gparseJSONf for (:*:)."
 
-instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
-  gtoJSONf _   _ _ (M1 (K1 Nothing )) = Right []
-  gtoJSONf set _ _ (M1 (K1 (Just x))) = Right [(selNameT set (undefined :: M1 S c f p), toJSON x)]
-instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
-  gparseJSONf set mc smf enm =
-    do (M1 (K1 x)) <- gparseJSONf set mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
-       return (M1 (K1 (Just x)))
-    <|>
-    return (M1 (K1 Nothing))
-
 instance GtoJson f => GtoJson (M1 D c f) where
   gtoJSONf set a b (M1 x) = gtoJSONf set a b x
 instance GfromJson f => GfromJson (M1 D c f) where
@@ -207,6 +197,16 @@ instance (Selector c, GfromJson f) => GfromJson (M1 S c f) where
        M1 <$> gparseJSONf set mc smf enm
     where
       propName = selNameT set (undefined :: M1 S c f p)
+
+instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
+  gtoJSONf _   _  _   (M1 (K1 Nothing )) = Right []
+  gtoJSONf set mc enm (M1 (K1 (Just x))) = gtoJSONf set mc enm (M1 (K1 x) :: (M1 S c (K1 i a)) p)
+instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
+  gparseJSONf set mc smf enm =
+    do (M1 (K1 x)) <- gparseJSONf set mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
+       return (M1 (K1 (Just x)))
+    <|>
+    return (M1 (K1 Nothing))
 
 selProp :: Text -> Text -> StateT [Value] Parser ()
 selProp cname propName =
