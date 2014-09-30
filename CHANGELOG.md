@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.2.0.1
+
+* Allow `text 1.2.*`
+
 ## 0.2.0.0
 
 * Add `gtoJsonWithSettings` and `gparseJsonWithSettings` to customize
