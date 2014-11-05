@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.2.0.2
+
+* Allow `generic-deriving 1.7.*`
+
 #### 0.2.0.1
 
 * Allow `text 1.2.*`
