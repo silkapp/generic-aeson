@@ -19,7 +19,7 @@ idiomatic JSON. This means:
 
 * Leading and trailing underscores are removed from constructor names and record fields
 
-See `tests/Main.hs` for more examples.
+See `tests/Main.hs` in [json-schema](http://hackage.haskell.org/package/json-schema) for more examples.
 
 
 ## How does generic-aeson compare to the TH/Generics already present in aeson?
