@@ -40,7 +40,6 @@ module Generics.Generic.Aeson
   ) where
 
 import Control.Applicative
-import Control.Monad.Error
 import Control.Monad.State
 import Data.Aeson
 import Data.Aeson.Types hiding (GFromJSON, GToJSON)
