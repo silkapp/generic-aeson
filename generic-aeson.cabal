@@ -23,6 +23,9 @@ library
   ghc-options:       -Wall
   hs-source-dirs:    src
   exposed-modules:
+    Generics.Aeson
+    Generics.Aeson.Util
+    Generics.Aeson.IsEnum
     Generics.Generic.Aeson
     Generics.Generic.Aeson.Util
     Generics.Generic.IsEnum
