@@ -119,9 +119,9 @@ gparseJsonWithSettings set
   . return
 
 -- Structure type for constant values.
-instance (ToJSON c) => GtoJson (K1 a c) where
+instance ToJSON c => GtoJson (K1 a c) where
   gtoJSONf _ _ _ (K1 a) = Left [toJSON a]
-instance (FromJSON c) => GfromJson (K1 a c) where
+instance FromJSON c => GfromJson (K1 a c) where
   gparseJSONf _ _ _ _   = lift . fmap K1 . parseJSON =<< pop
 
 instance (GtoJson f, GtoJson g) => GtoJson (f :+: g) where
@@ -208,7 +208,7 @@ instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
   gtoJSONf set mc enm (M1 (K1 (Just x))) = gtoJSONf set mc enm (M1 (K1 x) :: (M1 S c (K1 i a)) p)
 instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
   gparseJSONf set mc smf enm =
-    do (M1 (K1 x)) <- parser
+    do M1 (K1 x) <- parser
        return (M1 (K1 (Just x)))
     <|>
     do case selNameT set (undefined :: M1 S c (K1 i a) p) of
@@ -222,7 +222,7 @@ instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
                          | otherwise    -> return $ M1 (K1 Nothing)
                 _ -> lift $ typeMismatch "Object" (Array V.empty)
     where
-      parser = (gparseJSONf set mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p))
+      parser = gparseJSONf set mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
       impossible = "The impossible happened: parser succeeded after failing in GfromJson S Maybe"
 
 selProp :: Text -> Maybe Text -> StateT [Value] Parser ()
