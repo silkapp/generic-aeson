@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.2.0.4
+
+* Fix compilation on GHC 7.4
+
 #### 0.2.0.3
 
 * Allow `tagged 0.8.*`
