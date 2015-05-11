@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.2.0.5
+
+* Allow `attoparsec 0.13.*`
+
 #### 0.2.0.4
 
 * Fix compilation on GHC 7.4
