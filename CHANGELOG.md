@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.2.0.6
+
+* Allow `aeson 0.9.*`
+
 #### 0.2.0.5
 
 * Allow `attoparsec 0.13.*`
