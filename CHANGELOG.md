@@ -3,6 +3,7 @@
 #### 0.2.0.7
 
 * Allow `generic-deriving 1.8.*`
+* Allow `vector 0.11.*`
 
 #### 0.2.0.6
 
