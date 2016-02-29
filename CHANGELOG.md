@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.2.0.8
+
+* Fix compilation on GHC 8.
+
 #### 0.2.0.7
 
 * Allow `generic-deriving 1.8.*`
