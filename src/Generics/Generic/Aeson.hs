@@ -2,12 +2,14 @@
     CPP
   , FlexibleContexts
   , FlexibleInstances
-  , OverlappingInstances
   , OverloadedStrings
   , ScopedTypeVariables
   , TupleSections
   , TypeOperators
   #-}
+#if __GLASGOW_HASKELL__ < 710
+{-# LANGUAGE OverlappingInstances #-}
+#endif
 -- | This module offers generic conversions to an from JSON 'Value's
 -- for data types with a 'Generic' instance.
 --
@@ -201,12 +203,21 @@ instance (Selector c, GfromJson f) => GfromJson (M1 S c f) where
     where
       propName = selNameT set (undefined :: M1 S c f p)
 
+#if __GLASGOW_HASKELL__ >= 710
+instance {-# OVERLAPPING #-} (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
+#else
 instance (Selector c, ToJSON a) => GtoJson (M1 S c (K1 i (Maybe a))) where
+#endif
   gtoJSONf set   _  _   (M1 (K1 n@Nothing)) = case selNameT set (undefined :: M1 S c f p) of
     Nothing -> Left [toJSON n]
     Just _  -> Right []
   gtoJSONf set mc enm (M1 (K1 (Just x))) = gtoJSONf set mc enm (M1 (K1 x) :: (M1 S c (K1 i a)) p)
+
+#if __GLASGOW_HASKELL__ >= 710
+instance {-# OVERLAPPING #-} (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
+#else
 instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
+#endif
   gparseJSONf set mc smf enm =
     do M1 (K1 x) <- parser
        return (M1 (K1 (Just x)))
