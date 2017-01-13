@@ -10,7 +10,7 @@
 #if __GLASGOW_HASKELL__ < 710
 {-# LANGUAGE OverlappingInstances #-}
 #endif
--- | This module offers generic conversions to an from JSON 'Value's
+-- | This module offers generic conversions to and from JSON 'Value's
 -- for data types with a 'Generic' instance.
 --
 -- The structure of the generated JSON is meant to be close to
