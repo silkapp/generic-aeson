@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.2.0.9
+
+* Allow `aeson 1.2.*`
+* Fix a documentation typo
+
 #### 0.2.0.8
 
 * Fix compilation on GHC 8.
