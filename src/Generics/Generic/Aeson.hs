@@ -246,7 +246,7 @@ selProp cname propName =
                                         (.: p) o)
                   modify (v:)
 
-pop :: MonadState [Value] m => m Value
+pop :: StateT [Value] Parser Value
 pop =
   do (v:vs) <- get
      put vs
