@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.2.0.10
+
+* Allow base 4.12/GHC 8.6/Stackage LTS 13. Thanks to Enis Bayramoğlu!
+
 #### 0.2.0.9
 
 * Allow `aeson 1.2.*`
