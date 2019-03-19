@@ -42,7 +42,6 @@ module Generics.Generic.Aeson
   ) where
 
 import Control.Applicative
-import Control.Monad.Fail (MonadFail)
 import Control.Monad.State
 import Data.Aeson
 import Data.Aeson.Types hiding (GFromJSON, GToJSON)
@@ -247,7 +246,7 @@ selProp cname propName =
                                         (.: p) o)
                   modify (v:)
 
-pop :: (MonadState [Value] m, MonadFail m) => m Value
+pop :: StateT [Value] Parser Value
 pop =
   do (v:vs) <- get
      put vs
