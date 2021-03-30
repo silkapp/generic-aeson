@@ -28,17 +28,23 @@ import qualified Data.Text as T
 
 import Generics.Generic.IsEnum
 
-#if MIN_VERSION_base(4,9,0)
-conNameT :: forall (t :: * -> Meta -> (* -> *) -> * -> *) i c (f :: * -> *) p. Constructor c => Settings -> t i c f p -> Text
+#if MIN_VERSION_base(4,15,0)
+import Data.Kind (Type)
 #else
-conNameT :: forall c (t :: * -> (* -> *) -> * -> *) (f :: * -> *) a. Constructor c => Settings -> t c f a -> Text
+type Type = (*)
+#endif
+
+#if MIN_VERSION_base(4,9,0)
+conNameT :: forall (t :: Type -> Meta -> (Type -> Type) -> Type -> Type) i c (f :: Type -> Type) p. Constructor c => Settings -> t i c f p -> Text
+#else
+conNameT :: forall c (t :: Type -> (Type -> Type) -> Type -> Type) (f :: Type -> Type) a. Constructor c => Settings -> t c f a -> Text
 #endif
 conNameT set x = formatLabel set . T.pack . conName $ x
 
 #if MIN_VERSION_base(4,9,0)
-selNameT :: forall (t :: * -> Meta -> (* -> *) -> * -> *) i s (f :: * -> *) p. Selector s => Settings -> t i s f p -> Maybe Text
+selNameT :: forall (t :: Type -> Meta -> (Type -> Type) -> Type -> Type) i s (f :: Type -> Type) p. Selector s => Settings -> t i s f p -> Maybe Text
 #else
-selNameT :: forall s (t :: * -> (* -> *) -> * -> *) (f :: * -> *) a. Selector s => Settings -> t s f a -> Maybe Text
+selNameT :: forall s (t :: Type -> (Type -> Type) -> Type -> Type) (f :: Type -> Type) a. Selector s => Settings -> t s f a -> Maybe Text
 #endif
 selNameT set x = case formatLabel set . T.pack . selName $ x of
   "" -> Nothing
