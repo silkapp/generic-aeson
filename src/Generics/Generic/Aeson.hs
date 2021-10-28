@@ -45,15 +45,30 @@ import Control.Applicative
 import Control.Monad.State
 import Data.Aeson
 import Data.Aeson.Types hiding (GFromJSON, GToJSON)
+import Data.Bifunctor (first)
 import Data.Proxy
 import Data.Text (Text)
 import GHC.Generics
 import Generics.Deriving.ConNames
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap   as H
+#else
 import qualified Data.HashMap.Strict as H
+#endif
 import qualified Data.Text           as T
 import qualified Data.Vector         as V
 
 import Generics.Generic.Aeson.Util
+
+#if MIN_VERSION_aeson(2,0,0)
+import Data.Aeson.Key (fromText)
+#else
+-- for compatibility with aeson < 2
+type Key = Text
+
+fromText :: Text -> Key
+fromText = id
+#endif 
 
 -- | Class for converting the functors from "GHC.Generics" to JSON.
 -- You generally don't need to give any custom instances. Just add
@@ -229,8 +244,10 @@ instance (Selector c, FromJSON a) => GfromJson (M1 S c (K1 i (Maybe a))) where
          Just n  ->
            do o <- pop
               case o of
-                Object h | H.member n h -> error impossible <$> parser
-                         | otherwise    -> return $ M1 (K1 Nothing)
+                Object h | H.member (fromText n) h
+                         -> error impossible <$> parser
+                         | otherwise
+                         -> return $ M1 (K1 Nothing)
                 _ -> lift $ typeMismatch "Object" (Array V.empty)
     where
       parser = gparseJSONf set mc smf enm :: StateT [Value] Parser (M1 S c (K1 i a) p)
@@ -243,7 +260,7 @@ selProp cname propName =
                   modify (o:)
     Just p  -> do o <- pop
                   v <- lift (withObject ("Expected property " ++ show propName ++ " in object in gparseJSONf for " ++ show cname ++ ".")
-                                        (.: p) o)
+                                        (.: fromText p) o)
                   modify (v:)
 
 pop :: StateT [Value] Parser Value
@@ -253,4 +270,4 @@ pop =
      return v
 
 toObject :: ToJSON v => [(Text, v)] -> Value
-toObject = object . map (uncurry (.=))
+toObject = object . map (uncurry (.=) . first fromText)
