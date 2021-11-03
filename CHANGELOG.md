@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.2.0.13
+
+* Allow `aeson 2.0`.
+
 #### 0.2.0.11
 
 * Allow never GHC/libraries. Thanks to Alejandro Serrano!
